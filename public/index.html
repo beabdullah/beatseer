@@ -140,6 +140,42 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .auth-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255,107,107,0.3); }
 .auth-footer { text-align: center; font-size: 0.9rem; opacity: 0.8; color: white; }
 .newsletter-opt { background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
+.user-dropdown {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.user-icon {
+  font-size: 20px;
+}
+.user-name {
+  font-size: 16px;
+}
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+.dropdown-item {
+  padding: 10px;
+  font-size: 14px;
+}
+.dropdown-item:hover {
+  background: #f0f0f0;
+}
+.logout {
+  border-top: 1px solid #ccc;
+}
 @media (max-width: 768px) {
     .hero-title { font-size: 2.5rem; }
     .hero-subtitle { font-size: 1.2rem; }
@@ -155,30 +191,6 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     .upload-section { padding: 30px 20px; }
 }
 </style>
-
-<script type="module">
-  // Import the Firebase SDK
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-  import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-
-  // Your new Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCb3AAMFl6w7wq5XNKfMgz-EfcKp4PAMyM",
-  authDomain: "beatseer-dccc8.firebaseapp.com",
-  databaseURL: "https://beatseer-dccc8-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "beatseer-dccc8",
-  storageBucket: "beatseer-dccc8.firebasestorage.app",
-  messagingSenderId: "676102892636",
-  appId: "1:676102892636:web:dc02a47d2b4f636673ca99"
-};
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-</script>
-
 </head>
 <body>
 
@@ -1080,14 +1092,15 @@ const firebaseConfig = {
 <!-- AUTH MODAL -->
 <div id="authModal" class="auth-modal">
     <div class="auth-container">
-        <button class="auth-close" onclick="closeAuthModal()">×</button>
+        <button class="auth-close">Close</button>
         <div class="auth-header">
             <h2>Join Beatseer</h2>
             <p>Unlock the power of AI music intelligence</p>
         </div>
         <div class="auth-tabs">
-            <button class="auth-tab active" onclick="showAuthForm('login')">Login</button>
-            <button class="auth-tab" onclick="showAuthForm('signup')">Sign Up</button>
+            <a class="auth-tab" data-form="login">Login</a>
+            <a class="auth-tab" data-form="signup">Sign Up</a>
+            <a class="auth-tab" data-form="reset">Reset Password</a>
         </div>
         <form id="loginForm" class="auth-form active">
             <div class="form-group">
@@ -1147,471 +1160,725 @@ const firebaseConfig = {
     </div>
 </div>
 
-<script>
-// Navigation
-function showHomepage() {
-    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-    document.getElementById('main-page').classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+<script type="module">
+  // Import Firebase SDK
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+  import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    sendPasswordResetEmail, 
+    updateProfile,
+    onAuthStateChanged,
+    signOut
+  } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+  import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
-function scrollToTools() {
-    showHomepage();
-    document.getElementById('tools').scrollIntoView({ behavior: 'smooth' });
-}
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCb3AAMFl6w7wq5XNKfMgz-EfcKp4PAMyM",
+    authDomain: "beatseer-dccc8.firebaseapp.com",
+    databaseURL: "https://beatseer-dccc8-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "beatseer-dccc8",
+    storageBucket: "beatseer-dccc8.firebasestorage.app",
+    messagingSenderId: "676102892636",
+    appId: "1:676102892636:web:dc02a47d2b4f636673ca99"
+  };
 
-// Auth Modal
-function showAuthModal(formType = 'login') {
-    document.getElementById('authModal').classList.add('active');
-    showAuthForm(formType);
-}
+  // Initialize Firebase
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-function closeAuthModal() {
-    document.getElementById('authModal').classList.remove('active');
-    document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
-    document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
-    document.getElementById('loginForm').classList.add('active');
-    document.querySelector('.auth-tab[onclick="showAuthForm(\'login\')"]').classList.add('active');
-}
+    // Expose showAuthModal globally for React app
+    window.showAuthModal = showAuthModal;
 
-function showAuthForm(formId) {
-    document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
-    document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
-    document.getElementById(formId + 'Form').classList.add('active');
-    document.querySelector(`.auth-tab[onclick="showAuthForm('${formId}')"]`).classList.add('active');
-}
+    // Navigation
+    function showHomepage() {
+      document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+      const mainPage = document.getElementById('main-page');
+      if (mainPage) {
+        mainPage.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        console.error('Main page element not found');
+      }
+    }
 
-// Notification
-function showNotification(message, type) {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
-}
+    function scrollToTools() {
+      showHomepage();
+      const tools = document.getElementById('tools');
+      if (tools) {
+        tools.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        console.error('Tools element not found');
+      }
+    }
 
-// File Upload Handlers
-function handleFileSelect(input) {
-    const file = input.files[0];
-    const songName = document.getElementById('songNameInput').value.trim();
-    const songNameError = document.getElementById('songNameError');
-    const uploadArea = document.getElementById('uploadArea');
-    const uploadProgress = document.getElementById('uploadProgress');
-    const progressFill = document.getElementById('progressFill');
-    const fileInfo = document.getElementById('fileInfo');
-    const fileName = document.getElementById('fileName');
+    // Auth Modal
+    function showAuthModal(formType = 'login') {
+      const authModal = document.getElementById('authModal');
+      if (authModal) {
+        authModal.classList.add('active');
+        showAuthForm(formType);
+      } else {
+        console.error('Auth modal element not found');
+      }
+    }
 
-    if (!songName) {
+    function closeAuthModal() {
+      const authModal = document.getElementById('authModal');
+      if (authModal) {
+        authModal.classList.remove('active');
+        document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+        document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
+        const loginForm = document.getElementById('loginForm');
+        const loginTab = document.querySelector('.auth-tab[data-form="login"]');
+        if (loginForm && loginTab) {
+          loginForm.classList.add('active');
+          loginTab.classList.add('active');
+        } else {
+          console.error('Login form or tab not found');
+        }
+      } else {
+        console.error('Auth modal element not found');
+      }
+    }
+
+    function showAuthForm(formId) {
+      document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+      document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
+      const form = document.getElementById(formId + 'Form');
+      const tab = document.querySelector(`.auth-tab[data-form="${formId}"]`);
+      if (form && tab) {
+        form.classList.add('active');
+        tab.classList.add('active');
+      } else {
+        console.error(`Form or tab for ${formId} not found`);
+      }
+    }
+
+    // Notification
+    function showNotification(message, type) {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
+    }
+
+    // File Upload Handlers
+    function handleFileSelect(input) {
+      const file = input.files[0];
+      const songName = document.getElementById('songNameInput')?.value.trim();
+      const songNameError = document.getElementById('songNameError');
+      const uploadArea = document.getElementById('uploadArea');
+      const uploadProgress = document.getElementById('uploadProgress');
+      const progressFill = document.getElementById('progressFill');
+      const fileInfo = document.getElementById('fileInfo');
+      const fileName = document.getElementById('fileName');
+
+      if (!songNameError || !uploadArea || !uploadProgress || !progressFill || !fileInfo || !fileName) {
+        console.error('File upload elements not found');
+        return;
+      }
+
+      if (!songName) {
         songNameError.style.display = 'block';
         return;
-    }
-    songNameError.style.display = 'none';
+      }
+      songNameError.style.display = 'none';
 
-    if (!file) return;
+      if (!file) return;
 
-    uploadArea.style.display = 'none';
-    uploadProgress.style.display = 'block';
-    let progress = 0;
-    const interval = setInterval(() => {
+      uploadArea.style.display = 'none';
+      uploadProgress.style.display = 'block';
+      let progress = 0;
+      const interval = setInterval(() => {
         progress += 10;
         progressFill.style.width = `${progress}%`;
         if (progress >= 100) {
-            clearInterval(interval);
-            uploadProgress.style.display = 'none';
-            fileInfo.style.display = 'block';
-            fileName.textContent = `File: ${file.name}`;
-            showNotification('File uploaded successfully!', 'success');
+          clearInterval(interval);
+          uploadProgress.style.display = 'none';
+          fileInfo.style.display = 'block';
+          fileName.textContent = `File: ${file.name}`;
+          showNotification('File uploaded successfully!', 'success');
         }
-    }, 200);
-}
+      }, 200);
+    }
 
-function handleFileSyncSelect(input) {
-    const file = input.files[0];
-    const songTitle = document.getElementById('songTitleSync').value.trim();
-    const songTitleError = document.getElementById('songTitleSyncError');
-    if (!songTitle) {
+    function handleFileSyncSelect(input) {
+      const file = input.files[0];
+      const songTitle = document.getElementById('songTitleSync')?.value.trim();
+      const songTitleError = document.getElementById('songTitleSyncError');
+      if (!songTitleError) {
+        console.error('Song title sync error element not found');
+        return;
+      }
+      if (!songTitle) {
         songTitleError.style.display = 'block';
         return;
+      }
+      songTitleError.style.display = 'none';
+      if (!file) return;
+      showNotification('File uploaded successfully!', 'success');
     }
-    songTitleError.style.display = 'none';
-    if (!file) return;
-    showNotification('File uploaded successfully!', 'success');
-}
 
-function handleFileScopeSelect(input) {
-    const file = input.files[0];
-    const songTitle = document.getElementById('songTitleScope').value.trim();
-    const songTitleError = document.getElementById('songTitleScopeError');
-    if (!songTitle) {
+    function handleFileScopeSelect(input) {
+      const file = input.files[0];
+      const songTitle = document.getElementById('songTitleScope')?.value.trim();
+      const songTitleError = document.getElementById('songTitleScopeError');
+      if (!songTitleError) {
+        console.error('Song title scope error element not found');
+        return;
+      }
+      if (!songTitle) {
         songTitleError.style.display = 'block';
         return;
+      }
+      songTitleError.style.display = 'none';
+      if (!file) return;
+      showNotification('File uploaded successfully!', 'success');
     }
-    songTitleError.style.display = 'none';
-    if (!file) return;
-    showNotification('File uploaded successfully!', 'success');
-}
 
-function handleVocalSingleSelect(input) {
-    const file = input.files[0];
-    const vocalTitle = document.getElementById('vocalSingleTitle').value.trim();
-    const vocalTitleError = document.getElementById('vocalSingleTitleError');
-    if (!vocalTitle) {
+    function handleVocalSingleSelect(input) {
+      const file = input.files[0];
+      const vocalTitle = document.getElementById('vocalSingleTitle')?.value.trim();
+      const vocalTitleError = document.getElementById('vocalSingleTitleError');
+      if (!vocalTitleError) {
+        console.error('Vocal single title error element not found');
+        return;
+      }
+      if (!vocalTitle) {
         vocalTitleError.style.display = 'block';
         return;
+      }
+      vocalTitleError.style.display = 'none';
+      if (!file) return;
+      showNotification('Vocal file uploaded successfully!', 'success');
     }
-    vocalTitleError.style.display = 'none';
-    if (!file) return;
-    showNotification('Vocal file uploaded successfully!', 'success');
-}
 
-function handleVocalFilesSelect(input) {
-    const files = input.files;
-    const vocalTitle = document.getElementById('vocalTitle').value.trim();
-    const vocalTitleError = document.getElementById('vocalTitleError');
-    const fileInfo = document.getElementById('vocalFileInfo');
-    const fileNames = document.getElementById('vocalFileNames');
-    if (!vocalTitle) {
+    function handleVocalFilesSelect(input) {
+      const files = input.files;
+      const vocalTitle = document.getElementById('vocalTitle')?.value.trim();
+      const vocalTitleError = document.getElementById('vocalTitleError');
+      const fileInfo = document.getElementById('vocalFileInfo');
+      const fileNames = document.getElementById('vocalFileNames');
+      if (!vocalTitleError || !fileInfo || !fileNames) {
+        console.error('Vocal files elements not found');
+        return;
+      }
+      if (!vocalTitle) {
         vocalTitleError.style.display = 'block';
         return;
-    }
-    vocalTitleError.style.display = 'none';
-    if (files.length === 0) return;
-    if (files.length > 3) {
+      }
+      vocalTitleError.style.display = 'none';
+      if (files.length === 0) return;
+      if (files.length > 3) {
         showNotification('Please select up to 3 vocal tracks.', 'error');
         return;
+      }
+      fileInfo.style.display = 'block';
+      fileNames.textContent = `Files: ${Array.from(files).map(f => f.name).join(', ')}`;
+      showNotification('Vocal files uploaded successfully!', 'success');
     }
-    fileInfo.style.display = 'block';
-    fileNames.textContent = `Files: ${Array.from(files).map(f => f.name).join(', ')}`;
-    showNotification('Vocal files uploaded successfully!', 'success');
-}
 
-function handleArtistFileSelect(input) {
-    const file = input.files[0];
-    const artistTitle = document.getElementById('artistTitle').value.trim();
-    const artistTitleError = document.getElementById('artistTitleError');
-    if (!artistTitle) {
+    function handleArtistFileSelect(input) {
+      const file = input.files[0];
+      const artistTitle = document.getElementById('artistTitle')?.value.trim();
+      const artistTitleError = document.getElementById('artistTitleError');
+      if (!artistTitleError) {
+        console.error('Artist title error element not found');
+        return;
+      }
+      if (!artistTitle) {
         artistTitleError.style.display = 'block';
         return;
+      }
+      artistTitleError.style.display = 'none';
+      if (!file) return;
+      showNotification('Artist track uploaded successfully!', 'success');
     }
-    artistTitleError.style.display = 'none';
-    if (!file) return;
-    showNotification('Artist track uploaded successfully!', 'success');
-}
 
-// Analysis Functions
-function analyzeForSync() {
-    if (!auth.currentUser) {
+    // Analysis Functions
+    function analyzeForSync() {
+      if (!auth.currentUser) {
         showNotification('Please log in to analyze your song.', 'error');
         showAuthModal();
         return;
-    }
-    const songTitle = document.getElementById('songTitleSync').value.trim();
-    const file = document.getElementById('songFileSync').files[0];
-    const songTitleError = document.getElementById('songTitleSyncError');
-
-    if (!songTitle) {
+      }
+      const songTitle = document.getElementById('songTitleSync')?.value.trim();
+      const file = document.getElementById('songFileSync')?.files[0];
+      const songTitleError = document.getElementById('songTitleSyncError');
+      if (!songTitleError) {
+        console.error('Song title sync error element not found');
+        return;
+      }
+      if (!songTitle) {
         songTitleError.style.display = 'block';
         return;
-    }
-    if (!file) {
+      }
+      if (!file) {
         showNotification('Please upload a song file.', 'error');
         return;
+      }
+      showNotification('Sync analysis started! Results will be ready soon.', 'success');
     }
-    showNotification('Sync analysis started! Results will be ready soon.', 'success');
-}
 
-function analyzeSongScope() {
-    if (!auth.currentUser) {
+    function analyzeSongScope() {
+      if (!auth.currentUser) {
         showNotification('Please log in to analyze your song.', 'error');
         showAuthModal();
         return;
-    }
-    const songTitle = document.getElementById('songTitleScope').value.trim();
-    const file = document.getElementById('songFileScope').files[0];
-    const songTitleError = document.getElementById('songTitleScopeError');
-
-    if (!songTitle) {
+      }
+      const songTitle = document.getElementById('songTitleScope')?.value.trim();
+      const file = document.getElementById('songFileScope')?.files[0];
+      const songTitleError = document.getElementById('songTitleScopeError');
+      if (!songTitleError) {
+        console.error('Song title scope error element not found');
+        return;
+      }
+      if (!songTitle) {
         songTitleError.style.display = 'block';
         return;
-    }
-    if (!file) {
+      }
+      if (!file) {
         showNotification('Please upload a song file.', 'error');
         return;
+      }
+      showNotification('Song analysis started! Results will be ready soon.', 'success');
     }
-    showNotification('Song analysis started! Results will be ready soon.', 'success');
-}
 
-function analyzeVocalSingle() {
-    if (!auth.currentUser) {
+    function analyzeVocalSingle() {
+      if (!auth.currentUser) {
         showNotification('Please log in to analyze your vocal track.', 'error');
         showAuthModal();
         return;
-    }
-    const vocalTitle = document.getElementById('vocalSingleTitle').value.trim();
-    const file = document.getElementById('vocalSingleFile').files[0];
-    const vocalTitleError = document.getElementById('vocalSingleTitleError');
-
-    if (!vocalTitle) {
+      }
+      const vocalTitle = document.getElementById('vocalSingleTitle')?.value.trim();
+      const file = document.getElementById('vocalSingleFile')?.files[0];
+      const vocalTitleError = document.getElementById('vocalSingleTitleError');
+      if (!vocalTitleError) {
+        console.error('Vocal single title error element not found');
+        return;
+      }
+      if (!vocalTitle) {
         vocalTitleError.style.display = 'block';
         return;
-    }
-    if (!file) {
+      }
+      if (!file) {
         showNotification('Please upload a vocal track.', 'error');
         return;
+      }
+      showNotification('Vocal analysis started! Results will be ready soon.', 'success');
     }
-    showNotification('Vocal analysis started! Results will be ready soon.', 'success');
-}
 
-function analyzeVocalTracks() {
-    if (!auth.currentUser) {
+    function analyzeVocalTracks() {
+      if (!auth.currentUser) {
         showNotification('Please log in to analyze your vocal tracks.', 'error');
         showAuthModal();
         return;
-    }
-    const vocalTitle = document.getElementById('vocalTitle').value.trim();
-    const files = document.getElementById('vocalFilesInput').files;
-    const vocalTitleError = document.getElementById('vocalTitleError');
-
-    if (!vocalTitle) {
+      }
+      const vocalTitle = document.getElementById('vocalTitle')?.value.trim();
+      const files = document.getElementById('vocalFilesInput')?.files;
+      const vocalTitleError = document.getElementById('vocalTitleError');
+      if (!vocalTitleError) {
+        console.error('Vocal title error element not found');
+        return;
+      }
+      if (!vocalTitle) {
         vocalTitleError.style.display = 'block';
         return;
-    }
-    if (files.length === 0) {
+      }
+      if (files.length === 0) {
         showNotification('Please upload at least one vocal track.', 'error');
         return;
-    }
-    if (files.length > 3) {
+      }
+      if (files.length > 3) {
         showNotification('Please select up to 3 vocal tracks.', 'error');
         return;
+      }
+      showNotification('Vocal tracks analysis started! Results will be ready soon.', 'success');
     }
-    showNotification('Vocal tracks analysis started! Results will be ready soon.', 'success');
-}
 
-function analyzeArtistProfile() {
-    if (!auth.currentUser) {
+    function analyzeArtistProfile() {
+      if (!auth.currentUser) {
         showNotification('Please log in to analyze your artist track.', 'error');
         showAuthModal();
         return;
-    }
-    const artistTitle = document.getElementById('artistTitle').value.trim();
-    const file = document.getElementById('artistFile').files[0];
-    const artistTitleError = document.getElementById('artistTitleError');
-
-    if (!artistTitle) {
+      }
+      const artistTitle = document.getElementById('artistTitle')?.value.trim();
+      const file = document.getElementById('artistFile')?.files[0];
+      const artistTitleError = document.getElementById('artistTitleError');
+      if (!artistTitleError) {
+        console.error('Artist title error element not found');
+        return;
+      }
+      if (!artistTitle) {
         artistTitleError.style.display = 'block';
         return;
-    }
-    if (!file) {
+      }
+      if (!file) {
         showNotification('Please upload an artist track.', 'error');
         return;
+      }
+      showNotification('Artist profile analysis started! Results will be ready soon.', 'success');
     }
-    showNotification('Artist profile analysis started! Results will be ready soon.', 'success');
-}
 
-// Authentication Handlers
-document.querySelectorAll('.nav-button, .cta-button.cta-secondary:not([href="#tools"])').forEach(button => {
-    button.addEventListener('click', () => showAuthModal('signup'));
-});
+    // User Dropdown
+    function createUserDropdown(user) {
+      const displayName = user.displayName || user.email.split('@')[0];
+      const navButton = document.querySelector('.nav-button') || document.querySelector('a[href="#login"], button[href="#login"], [data-login]');
+      const ctaButton = document.querySelector('.cta-button.cta-secondary:not([href="#tools"])') || document.querySelector('a[href="#signup"], button[href="#signup"], [data-signup]');
+      
+      console.log('Creating dropdown for user:', displayName);
+      console.log('Nav button found:', !!navButton, 'CTA button found:', !!ctaButton);
 
-document.querySelector('.auth-close').addEventListener('click', closeAuthModal);
+      // Hide login/signup and free trial buttons
+      if (navButton) {
+        navButton.style.display = 'none';
+        console.log('Hid nav button');
+      } else {
+        console.warn('Nav button not found');
+      }
+      if (ctaButton) {
+        ctaButton.style.display = 'none';
+        console.log('Hid CTA button');
+      } else {
+        console.warn('CTA button not found');
+      }
 
-document.getElementById('loginForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
-    const rememberMe = document.getElementById('rememberMe').checked;
+      // Remove existing dropdown if present
+      const existingDropdown = document.querySelector('.user-dropdown');
+      if (existingDropdown) {
+        existingDropdown.remove();
+        console.log('Removed existing dropdown');
+      }
 
-    if (!email || !password) {
+      // Create user dropdown
+      const userContainer = document.createElement('div');
+      userContainer.className = 'user-dropdown';
+      userContainer.innerHTML = `
+        <div class="user-info">
+          <span class="user-icon">👤</span>
+          <span class="user-name">${displayName}</span>
+        </div>
+        <div class="dropdown-menu" style="display: none;">
+          <div class="dropdown-item">${displayName}</div>
+          <div class="dropdown-item logout">Logout</div>
+        </div>
+      `;
+      
+      // Append to nav or body
+      const nav = document.querySelector('nav') || document.querySelector('header') || document.body;
+      if (nav) {
+        nav.appendChild(userContainer);
+        console.log('Appended dropdown to nav');
+      } else {
+        console.error('Nav element not found, appended to body');
+        document.body.appendChild(userContainer);
+      }
+
+      // Toggle dropdown
+      const userInfo = userContainer.querySelector('.user-info');
+      if (userInfo) {
+        userInfo.addEventListener('click', () => {
+          const dropdown = userContainer.querySelector('.dropdown-menu');
+          if (dropdown) {
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            console.log('Toggled dropdown visibility');
+          }
+        });
+      } else {
+        console.error('User info element not found in dropdown');
+      }
+
+      // Logout
+      const logoutButton = userContainer.querySelector('.logout');
+      if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+          signOut(auth).then(() => {
+            showNotification('Logged out successfully!', 'success');
+            userContainer.remove();
+            if (navButton) navButton.style.display = 'block';
+            if (ctaButton) ctaButton.style.display = 'block';
+            console.log('Logged out, restored buttons');
+          }).catch((error) => {
+            showNotification(`Error: ${error.message}`, 'error');
+            console.error('Logout error:', error.code, error.message);
+          });
+        });
+      } else {
+        console.error('Logout button not found in dropdown');
+      }
+    }
+
+    // Authentication Handlers
+    document.querySelectorAll('.nav-button, .cta-button.cta-secondary:not([href="#tools"]), [data-login], [data-signup]').forEach(button => {
+      button.addEventListener('click', () => {
+        console.log('Auth button clicked:', button);
+        showAuthModal('signup');
+      });
+    });
+
+    document.querySelector('.auth-close').addEventListener('click', closeAuthModal);
+
+    document.getElementById('loginForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail')?.value.trim();
+      const password = document.getElementById('loginPassword')?.value.trim();
+
+      if (!email || !password) {
         showNotification('Please fill in all fields.', 'error');
         return;
-    }
+      }
 
-    signInWithEmailAndPassword(auth, email, password)
+      signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            const user = userCredential.user;
-            showNotification(`Welcome back, ${user.email}!`, 'success');
-            closeAuthModal();
-            if (rememberMe) {
-                auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-            } else {
-                auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-            }
+          const user = userCredential.user;
+          showNotification(`Welcome back, ${user.email}!`, 'success');
+          closeAuthModal();
+          console.log('Login successful, user:', user.email);
         })
         .catch((error) => {
-            showNotification(`Error: ${error.message}`, 'error');
+          showNotification(`Error: ${error.message}`, 'error');
+          console.error('Login error:', error.code, error.message);
         });
-});
+    });
 
-document.getElementById('signupForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = document.getElementById('signupName').value.trim();
-    const email = document.getElementById('signupEmail').value.trim();
-    const password = document.getElementById('signupPassword').value.trim();
-    const terms = document.getElementById('termsAgree').checked;
-    const newsletter = document.getElementById('newsletterSignup').checked;
+    document.getElementById('signupForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('signupName')?.value.trim();
+      const email = document.getElementById('signupEmail')?.value.trim();
+      const password = document.getElementById('signupPassword')?.value.trim();
+      const terms = document.getElementById('termsAgree')?.checked;
+      const newsletter = document.getElementById('newsletterSignup')?.checked;
 
-    if (!name || !email || !password || !terms) {
+      if (!name || !email || !password || !terms) {
         showNotification('Please fill in all fields and agree to terms.', 'error');
         return;
-    }
+      }
 
-    createUserWithEmailAndPassword(auth, email, password)
+      createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            const user = userCredential.user;
-            return Promise.all([
-                updateProfile(user, { displayName: name }),
-                setDoc(doc(db, 'users', user.uid), {
-                    name: name,
-                    email: email,
-                    newsletter: newsletter,
-                    createdAt: new Date()
-                })
-            ]).then(() => {
-                showNotification(`Account created for ${name}!`, 'success');
-                closeAuthModal();
-            });
+          const user = userCredential.user;
+          return Promise.all([
+            updateProfile(user, { displayName: name }),
+            setDoc(doc(db, 'users', user.uid), {
+              name: name,
+              email: email,
+              newsletter: newsletter,
+              createdAt: new Date()
+            })
+          ]).then(() => {
+            showNotification(`Account created for ${name}!`, 'success');
+            showAuthForm('login'); // Switch to login form
+            document.getElementById('loginEmail').value = email; // Pre-fill email
+            console.log('Signup successful, switched to login form');
+          });
         })
         .catch((error) => {
-            showNotification(`Error: ${error.message}`, 'error');
+          showNotification(`Error: ${error.message}`, 'error');
+          console.error('Signup error:', error.code, error.message);
         });
-});
+    });
 
-document.getElementById('resetForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('resetEmail').value.trim();
+    document.getElementById('resetForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('resetEmail')?.value.trim();
 
-    if (!email) {
+      if (!email) {
         showNotification('Please enter your email.', 'error');
         return;
-    }
+      }
 
-    sendPasswordResetEmail(auth, email)
+      sendPasswordResetEmail(auth, email)
         .then(() => {
-            showNotification('Password reset email sent! Check your inbox.', 'success');
-            closeAuthModal();
+          showNotification('Password reset email sent! Check your inbox.', 'success');
+          closeAuthModal();
         })
         .catch((error) => {
-            showNotification(`Error: ${error.message}`, 'error');
+          showNotification(`Error: ${error.message}`, 'error');
+          console.error('Password reset error:', error.code, error.message);
         });
-});
+    });
 
-document.querySelector('#loginForm .auth-footer a[href="#reset"]').addEventListener('click', (e) => {
-    e.preventDefault();
-    showAuthForm('reset');
-});
+    // Programmatically add auth-tab event listeners
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        const formId = tab.getAttribute('data-form');
+        if (formId) {
+          showAuthForm(formId);
+          console.log(`Switched to ${formId} form`);
+        } else {
+          console.error('No data-form attribute on auth tab');
+        }
+      });
+    });
 
-// Restrict Tool Access
-auth.onAuthStateChanged((user) => {
-    if (user) {
+    document.querySelector('#loginForm .auth-footer a[href="#reset"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      showAuthForm('reset');
+      console.log('Switched to reset form');
+    });
+
+    // Restrict Tool Access and Handle User Dropdown
+    onAuthStateChanged(auth, (user) => {
+      console.log('Auth state changed:', user ? 'Logged in' : 'Logged out');
+      const navButton = document.querySelector('.nav-button') || document.querySelector('a[href="#login"], button[href="#login"], [data-login]');
+      const ctaButton = document.querySelector('.cta-button.cta-secondary:not([href="#tools"])') || document.querySelector('a[href="#signup"], button[href="#signup"], [data-signup]');
+      const userContainer = document.querySelector('.user-dropdown');
+
+      if (user) {
+        // Enable analysis buttons
         document.querySelectorAll('.analyze-btn, button[onclick^="analyze"]').forEach(btn => {
-            btn.disabled = false;
-            btn.style.opacity = '1';
+          btn.disabled = false;
+          btn.style.opacity = '1';
         });
-    } else {
+        // Create user dropdown
+        if (!userContainer) {
+          createUserDropdown(user);
+          console.log('Created user dropdown');
+        } else {
+          console.log('User dropdown already exists');
+        }
+      } else {
+        // Disable analysis buttons
         document.querySelectorAll('.analyze-btn, button[onclick^="analyze"]').forEach(btn => {
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
         });
-    }
-});
+        // Remove user dropdown
+        if (userContainer) {
+          userContainer.remove();
+          if (navButton) navButton.style.display = 'block';
+          if (ctaButton) ctaButton.style.display = 'block';
+          console.log('Removed user dropdown, restored buttons');
+        }
+      }
+    });
 
-// File Input Handlers
-document.getElementById('fileInput').addEventListener('change', (e) => handleFileSelect(e.target));
-document.getElementById('uploadArea').addEventListener('click', () => document.getElementById('fileInput').click());
-document.getElementById('uploadArea').addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.target.classList.add('dragover');
-});
-document.getElementById('uploadArea').addEventListener('dragleave', (e) => {
-    e.target.classList.remove('dragover');
-});
-document.getElementById('uploadArea').addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.target.classList.remove('dragover');
-    document.getElementById('fileInput').files = e.dataTransfer.files;
-    handleFileSelect(document.getElementById('fileInput'));
-});
+    // File Input Handlers
+    document.getElementById('fileInput')?.addEventListener('change', (e) => handleFileSelect(e.target));
+    document.getElementById('uploadArea')?.addEventListener('click', () => document.getElementById('fileInput')?.click());
+    document.getElementById('uploadArea')?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.target.classList.add('dragover');
+    });
+    document.getElementById('uploadArea')?.addEventListener('dragleave', (e) => {
+      e.target.classList.remove('dragover');
+    });
+    document.getElementById('uploadArea')?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.target.classList.remove('dragover');
+      const fileInput = document.getElementById('fileInput');
+      if (fileInput) {
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect(fileInput);
+      }
+    });
 
-document.getElementById('songFileSync').addEventListener('change', (e) => handleFileSyncSelect(e.target));
-document.getElementById('syncFileUploadArea').addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.target.classList.add('dragover');
-});
-document.getElementById('syncFileUploadArea').addEventListener('dragleave', (e) => {
-    e.target.classList.remove('dragover');
-});
-document.getElementById('syncFileUploadArea').addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.target.classList.remove('dragover');
-    document.getElementById('songFileSync').files = e.dataTransfer.files;
-    handleFileSyncSelect(document.getElementById('songFileSync'));
-});
+    document.getElementById('songFileSync')?.addEventListener('change', (e) => handleFileSyncSelect(e.target));
+    document.getElementById('syncFileUploadArea')?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.target.classList.add('dragover');
+    });
+    document.getElementById('syncFileUploadArea')?.addEventListener('dragleave', (e) => {
+      e.target.classList.remove('dragover');
+    });
+    document.getElementById('syncFileUploadArea')?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.target.classList.remove('dragover');
+      const songFileSync = document.getElementById('songFileSync');
+      if (songFileSync) {
+        songFileSync.files = e.dataTransfer.files;
+        handleFileSyncSelect(songFileSync);
+      }
+    });
 
-document.getElementById('songFileScope').addEventListener('change', (e) => handleFileScopeSelect(e.target));
-document.getElementById('songFileUploadArea').addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.target.classList.add('dragover');
-});
-document.getElementById('songFileUploadArea').addEventListener('dragleave', (e) => {
-    e.target.classList.remove('dragover');
-});
-document.getElementById('songFileUploadArea').addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.target.classList.remove('dragover');
-    document.getElementById('songFileScope').files = e.dataTransfer.files;
-    handleFileScopeSelect(document.getElementById('songFileScope'));
-});
+    document.getElementById('songFileScope')?.addEventListener('change', (e) => handleFileScopeSelect(e.target));
+    document.getElementById('songFileUploadArea')?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.target.classList.add('dragover');
+    });
+    document.getElementById('songFileUploadArea')?.addEventListener('dragleave', (e) => {
+      e.target.classList.remove('dragover');
+    });
+    document.getElementById('songFileUploadArea')?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.target.classList.remove('dragover');
+      const songFileScope = document.getElementById('songFileScope');
+      if (songFileScope) {
+        songFileScope.files = e.dataTransfer.files;
+        handleFileScopeSelect(songFileScope);
+      }
+    });
 
-document.getElementById('vocalSingleFile').addEventListener('change', (e) => handleVocalSingleSelect(e.target));
-document.getElementById('vocalSingleUploadArea').addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.target.classList.add('dragover');
-});
-document.getElementById('vocalSingleUploadArea').addEventListener('dragleave', (e) => {
-    e.target.classList.remove('dragover');
-});
-document.getElementById('vocalSingleUploadArea').addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.target.classList.remove('dragover');
-    document.getElementById('vocalSingleFile').files = e.dataTransfer.files;
-    handleVocalSingleSelect(document.getElementById('vocalSingleFile'));
-});
+    document.getElementById('vocalSingleFile')?.addEventListener('change', (e) => handleVocalSingleSelect(e.target));
+    document.getElementById('vocalSingleUploadArea')?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.target.classList.add('dragover');
+    });
+    document.getElementById('vocalSingleUploadArea')?.addEventListener('dragleave', (e) => {
+      e.target.classList.remove('dragover');
+    });
+    document.getElementById('vocalSingleUploadArea')?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.target.classList.remove('dragover');
+      const vocalSingleFile = document.getElementById('vocalSingleFile');
+      if (vocalSingleFile) {
+        vocalSingleFile.files = e.dataTransfer.files;
+        handleVocalSingleSelect(vocalSingleFile);
+      }
+    });
 
-document.getElementById('vocalFilesInput').addEventListener('change', (e) => handleVocalFilesSelect(e.target));
-document.getElementById('vocalFilesUploadArea').addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.target.classList.add('dragover');
-});
-document.getElementById('vocalFilesUploadArea').addEventListener('dragleave', (e) => {
-    e.target.classList.remove('dragover');
-});
-document.getElementById('vocalFilesUploadArea').addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.target.classList.remove('dragover');
-    document.getElementById('vocalFilesInput').files = e.dataTransfer.files;
-    handleVocalFilesSelect(document.getElementById('vocalFilesInput'));
-});
+    document.getElementById('vocalFilesInput')?.addEventListener('change', (e) => handleVocalFilesSelect(e.target));
+    document.getElementById('vocalFilesUploadArea')?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.target.classList.add('dragover');
+    });
+    document.getElementById('vocalFilesUploadArea')?.addEventListener('dragleave', (e) => {
+      e.target.classList.remove('dragover');
+    });
+    document.getElementById('vocalFilesUploadArea')?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.target.classList.remove('dragover');
+      const vocalFilesInput = document.getElementById('vocalFilesInput');
+      if (vocalFilesInput) {
+        vocalFilesInput.files = e.dataTransfer.files;
+        handleVocalFilesSelect(vocalFilesInput);
+      }
+    });
 
-document.getElementById('artistFile').addEventListener('change', (e) => handleArtistFileSelect(e.target));
-document.getElementById('artistUploadArea').addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.target.classList.add('dragover');
-});
-document.getElementById('artistUploadArea').addEventListener('dragleave', (e) => {
-    e.target.classList.remove('dragover');
-});
-document.getElementById('artistUploadArea').addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.target.classList.remove('dragover');
-    document.getElementById('artistFile').files = e.dataTransfer.files;
-    handleArtistFileSelect(document.getElementById('artistFile'));
-});
+    document.getElementById('artistFile')?.addEventListener('change', (e) => handleArtistFileSelect(e.target));
+    document.getElementById('artistUploadArea')?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.target.classList.add('dragover');
+    });
+    document.getElementById('artistUploadArea')?.addEventListener('dragleave', (e) => {
+      e.target.classList.remove('dragover');
+    });
+    document.getElementById('artistUploadArea')?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.target.classList.remove('dragover');
+      const artistFile = document.getElementById('artistFile');
+      if (artistFile) {
+        artistFile.files = e.dataTransfer.files;
+        handleArtistFileSelect(artistFile);
+      }
+    });
 
-// Initialize
-document.querySelectorAll('a[href="#tools"]').forEach(link => link.addEventListener('click', (e) => {
-    e.preventDefault();
-    scrollToTools();
-}));
+    // Initialize
+    document.querySelectorAll('a[href="#tools"]').forEach(link => link.addEventListener('click', (e) => {
+      e.preventDefault();
+      scrollToTools();
+    }));
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    showNotification('Failed to initialize Firebase. Please try again later.', 'error');
+  }
 </script>
 </body>
 </html>
