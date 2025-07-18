@@ -166,15 +166,14 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   z-index: 1000;
 }
-.dropdown-item {
+.dropdown-item.logout {
   padding: 10px;
   font-size: 14px;
+  color: #00008B;
+  font-weight: bold;
 }
-.dropdown-item:hover {
+.dropdown-item.logout:hover {
   background: #f0f0f0;
-}
-.logout {
-  border-top: 1px solid #ccc;
 }
 @media (max-width: 768px) {
     .hero-title { font-size: 2.5rem; }
@@ -1153,7 +1152,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     </div>
     <button type="submit" class="auth-submit">Send Reset Link</button>
     <div class="auth-footer">
-        <p>Back to <a href="#" onclick="showAuthForm('login')">Login</a></p>
+        <p>Back to <a href="#login" onclick="showAuthForm('login')">Login</a></p>
     </div>
 </form>
 
@@ -1528,7 +1527,8 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
     // User Dropdown
     function createUserDropdown(user) {
-      const displayName = user.displayName || user.email.split('@')[0];
+      const displayNameRaw = user.displayName || user.email.split('@')[0];
+      const displayName = displayNameRaw.charAt(0).toUpperCase() + displayNameRaw.slice(1);
       const navButton = document.querySelector('.nav-button') || document.querySelector('a[href="#login"], button[href="#login"], [data-login]');
       const ctaButton = document.querySelector('.cta-button.cta-secondary:not([href="#tools"])') || document.querySelector('a[href="#signup"], button[href="#signup"], [data-signup]');
       
@@ -1565,7 +1565,6 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
           <span class="user-name">${displayName}</span>
         </div>
         <div class="dropdown-menu" style="display: none;">
-          <div class="dropdown-item">${displayName}</div>
           <div class="dropdown-item logout">Logout</div>
         </div>
       `;
@@ -1718,10 +1717,17 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
       });
     });
 
+    // Handle footer links
     document.querySelector('#loginForm .auth-footer a[href="#reset"]')?.addEventListener('click', (e) => {
       e.preventDefault();
       showAuthForm('reset');
       console.log('Switched to reset form');
+    });
+
+    document.querySelector('#resetForm .auth-footer a[href="#login"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      showAuthForm('login');
+      console.log('Switched to login form from reset');
     });
 
     // Restrict Tool Access and Handle User Dropdown
