@@ -1161,12 +1161,13 @@ function scrollToTools() {
 }
 
 // Auth Modal
-function showAuthModal() {
-    document.querySelector('.auth-modal').classList.add('active');
+function showAuthModal(formType = 'login') {
+    document.getElementById('authModal').classList.add('active');
+    showAuthForm(formType);
 }
 
 function closeAuthModal() {
-    document.querySelector('.auth-modal').classList.remove('active');
+    document.getElementById('authModal').classList.remove('active');
     document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
     document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
     document.getElementById('loginForm').classList.add('active');
@@ -1250,6 +1251,53 @@ function handleFileScopeSelect(input) {
     showNotification('File uploaded successfully!', 'success');
 }
 
+function handleVocalSingleSelect(input) {
+    const file = input.files[0];
+    const vocalTitle = document.getElementById('vocalSingleTitle').value.trim();
+    const vocalTitleError = document.getElementById('vocalSingleTitleError');
+    if (!vocalTitle) {
+        vocalTitleError.style.display = 'block';
+        return;
+    }
+    vocalTitleError.style.display = 'none';
+    if (!file) return;
+    showNotification('Vocal file uploaded successfully!', 'success');
+}
+
+function handleVocalFilesSelect(input) {
+    const files = input.files;
+    const vocalTitle = document.getElementById('vocalTitle').value.trim();
+    const vocalTitleError = document.getElementById('vocalTitleError');
+    const fileInfo = document.getElementById('vocalFileInfo');
+    const fileNames = document.getElementById('vocalFileNames');
+    if (!vocalTitle) {
+        vocalTitleError.style.display = 'block';
+        return;
+    }
+    vocalTitleError.style.display = 'none';
+    if (files.length === 0) return;
+    if (files.length > 3) {
+        showNotification('Please select up to 3 vocal tracks.', 'error');
+        return;
+    }
+    fileInfo.style.display = 'block';
+    fileNames.textContent = `Files: ${Array.from(files).map(f => f.name).join(', ')}`;
+    showNotification('Vocal files uploaded successfully!', 'success');
+}
+
+function handleArtistFileSelect(input) {
+    const file = input.files[0];
+    const artistTitle = document.getElementById('artistTitle').value.trim();
+    const artistTitleError = document.getElementById('artistTitleError');
+    if (!artistTitle) {
+        artistTitleError.style.display = 'block';
+        return;
+    }
+    artistTitleError.style.display = 'none';
+    if (!file) return;
+    showNotification('Artist track uploaded successfully!', 'success');
+}
+
 // Analysis Functions
 function analyzeForSync() {
     if (!auth.currentUser) {
@@ -1293,17 +1341,84 @@ function analyzeSongScope() {
     showNotification('Song analysis started! Results will be ready soon.', 'success');
 }
 
+function analyzeVocalSingle() {
+    if (!auth.currentUser) {
+        showNotification('Please log in to analyze your vocal track.', 'error');
+        showAuthModal();
+        return;
+    }
+    const vocalTitle = document.getElementById('vocalSingleTitle').value.trim();
+    const file = document.getElementById('vocalSingleFile').files[0];
+    const vocalTitleError = document.getElementById('vocalSingleTitleError');
+
+    if (!vocalTitle) {
+        vocalTitleError.style.display = 'block';
+        return;
+    }
+    if (!file) {
+        showNotification('Please upload a vocal track.', 'error');
+        return;
+    }
+    showNotification('Vocal analysis started! Results will be ready soon.', 'success');
+}
+
+function analyzeVocalTracks() {
+    if (!auth.currentUser) {
+        showNotification('Please log in to analyze your vocal tracks.', 'error');
+        showAuthModal();
+        return;
+    }
+    const vocalTitle = document.getElementById('vocalTitle').value.trim();
+    const files = document.getElementById('vocalFilesInput').files;
+    const vocalTitleError = document.getElementById('vocalTitleError');
+
+    if (!vocalTitle) {
+        vocalTitleError.style.display = 'block';
+        return;
+    }
+    if (files.length === 0) {
+        showNotification('Please upload at least one vocal track.', 'error');
+        return;
+    }
+    if (files.length > 3) {
+        showNotification('Please select up to 3 vocal tracks.', 'error');
+        return;
+    }
+    showNotification('Vocal tracks analysis started! Results will be ready soon.', 'success');
+}
+
+function analyzeArtistProfile() {
+    if (!auth.currentUser) {
+        showNotification('Please log in to analyze your artist track.', 'error');
+        showAuthModal();
+        return;
+    }
+    const artistTitle = document.getElementById('artistTitle').value.trim();
+    const file = document.getElementById('artistFile').files[0];
+    const artistTitleError = document.getElementById('artistTitleError');
+
+    if (!artistTitle) {
+        artistTitleError.style.display = 'block';
+        return;
+    }
+    if (!file) {
+        showNotification('Please upload an artist track.', 'error');
+        return;
+    }
+    showNotification('Artist profile analysis started! Results will be ready soon.', 'success');
+}
+
 // Authentication Handlers
 document.querySelectorAll('.nav-button, .cta-button.cta-secondary:not([href="#tools"])').forEach(button => {
-    button.addEventListener('click', showAuthModal);
+    button.addEventListener('click', () => showAuthModal('signup'));
 });
 
 document.querySelector('.auth-close').addEventListener('click', closeAuthModal);
 
 document.getElementById('loginForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
     const rememberMe = document.getElementById('rememberMe').checked;
 
     if (!email || !password) {
@@ -1317,9 +1432,9 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
             showNotification(`Welcome back, ${user.email}!`, 'success');
             closeAuthModal();
             if (rememberMe) {
-                auth.setPersistence(auth, firebase.auth.Auth.Persistence.LOCAL);
+                auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
             } else {
-                auth.setPersistence(auth, firebase.auth.Auth.Persistence.SESSION);
+                auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
             }
         })
         .catch((error) => {
@@ -1329,9 +1444,9 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
 
 document.getElementById('signupForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const name = document.getElementById('signupName').value;
-    const email = document.getElementById('signupEmail').value;
-    const password = document.getElementById('signupPassword').value;
+    const name = document.getElementById('signupName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value.trim();
     const terms = document.getElementById('termsAgree').checked;
     const newsletter = document.getElementById('newsletterSignup').checked;
 
@@ -1363,7 +1478,7 @@ document.getElementById('signupForm').addEventListener('submit', (e) => {
 
 document.getElementById('resetForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const email = document.getElementById('resetEmail').value;
+    const email = document.getElementById('resetEmail').value.trim();
 
     if (!email) {
         showNotification('Please enter your email.', 'error');
@@ -1415,6 +1530,81 @@ document.getElementById('uploadArea').addEventListener('drop', (e) => {
     e.target.classList.remove('dragover');
     document.getElementById('fileInput').files = e.dataTransfer.files;
     handleFileSelect(document.getElementById('fileInput'));
+});
+
+document.getElementById('songFileSync').addEventListener('change', (e) => handleFileSyncSelect(e.target));
+document.getElementById('syncFileUploadArea').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.target.classList.add('dragover');
+});
+document.getElementById('syncFileUploadArea').addEventListener('dragleave', (e) => {
+    e.target.classList.remove('dragover');
+});
+document.getElementById('syncFileUploadArea').addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.target.classList.remove('dragover');
+    document.getElementById('songFileSync').files = e.dataTransfer.files;
+    handleFileSyncSelect(document.getElementById('songFileSync'));
+});
+
+document.getElementById('songFileScope').addEventListener('change', (e) => handleFileScopeSelect(e.target));
+document.getElementById('songFileUploadArea').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.target.classList.add('dragover');
+});
+document.getElementById('songFileUploadArea').addEventListener('dragleave', (e) => {
+    e.target.classList.remove('dragover');
+});
+document.getElementById('songFileUploadArea').addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.target.classList.remove('dragover');
+    document.getElementById('songFileScope').files = e.dataTransfer.files;
+    handleFileScopeSelect(document.getElementById('songFileScope'));
+});
+
+document.getElementById('vocalSingleFile').addEventListener('change', (e) => handleVocalSingleSelect(e.target));
+document.getElementById('vocalSingleUploadArea').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.target.classList.add('dragover');
+});
+document.getElementById('vocalSingleUploadArea').addEventListener('dragleave', (e) => {
+    e.target.classList.remove('dragover');
+});
+document.getElementById('vocalSingleUploadArea').addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.target.classList.remove('dragover');
+    document.getElementById('vocalSingleFile').files = e.dataTransfer.files;
+    handleVocalSingleSelect(document.getElementById('vocalSingleFile'));
+});
+
+document.getElementById('vocalFilesInput').addEventListener('change', (e) => handleVocalFilesSelect(e.target));
+document.getElementById('vocalFilesUploadArea').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.target.classList.add('dragover');
+});
+document.getElementById('vocalFilesUploadArea').addEventListener('dragleave', (e) => {
+    e.target.classList.remove('dragover');
+});
+document.getElementById('vocalFilesUploadArea').addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.target.classList.remove('dragover');
+    document.getElementById('vocalFilesInput').files = e.dataTransfer.files;
+    handleVocalFilesSelect(document.getElementById('vocalFilesInput'));
+});
+
+document.getElementById('artistFile').addEventListener('change', (e) => handleArtistFileSelect(e.target));
+document.getElementById('artistUploadArea').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.target.classList.add('dragover');
+});
+document.getElementById('artistUploadArea').addEventListener('dragleave', (e) => {
+    e.target.classList.remove('dragover');
+});
+document.getElementById('artistUploadArea').addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.target.classList.remove('dragover');
+    document.getElementById('artistFile').files = e.dataTransfer.files;
+    handleArtistFileSelect(document.getElementById('artistFile'));
 });
 
 // Initialize
