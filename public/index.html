@@ -1622,7 +1622,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
       });
     });
 
-    document.querySelector('.auth-close').addEventListener('click', closeAuthModal);
+    document.querySelector('.auth-close')?.addEventListener('click', closeAuthModal);
 
     document.getElementById('loginForm')?.addEventListener('submit', (e) => {
       e.preventDefault();
